@@ -11,6 +11,7 @@ ENV/
 *.egg-info/
 .installed.cfg
 *.egg
+*.pkl
 
 # Node / Next.js
 node_modules/

@@ -11,6 +11,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  ReferenceDot,
   ComposedChart,
   Bar,
 } from "recharts";
@@ -21,6 +22,7 @@ interface HistoryPoint {
   viscosity: number;
   load: number;
   sor: number;
+  cumulative_sor?: number;
   daily_margin: number;
   diagnosis: string;
 }
@@ -72,6 +74,7 @@ export default function Analytics() {
                   viscosity: d.viscosity,
                   load: d.load,
                   sor: d.economics?.current_sor ?? 0,
+                  cumulative_sor: d.economics?.cumulative_sor ?? 0,
                   daily_margin: d.economics?.net_daily_margin_usd ?? 0,
                   diagnosis: d.diagnosis,
                 },
@@ -94,6 +97,7 @@ export default function Analytics() {
     time: new Date(p.timestamp).toLocaleTimeString(),
     temp: p.temperature,
     sor: p.sor,
+    cum_sor: p.cumulative_sor,
     margin: p.daily_margin,
   }));
   const bgw02Data = history["BGW-02"].slice(-40).map((p, i) => ({
@@ -101,6 +105,7 @@ export default function Analytics() {
     time: new Date(p.timestamp).toLocaleTimeString(),
     temp: p.temperature,
     sor: p.sor,
+    cum_sor: p.cumulative_sor,
     margin: p.daily_margin,
   }));
   const bgw03Data = history["BGW-03"].slice(-40).map((p, i) => ({
@@ -108,6 +113,7 @@ export default function Analytics() {
     time: new Date(p.timestamp).toLocaleTimeString(),
     temp: p.temperature,
     sor: p.sor,
+    cum_sor: p.cumulative_sor,
     margin: p.daily_margin,
   }));
 
@@ -123,9 +129,12 @@ export default function Analytics() {
   const STEAM_DAILY = 35;  // tons/day amortized steam cost over production phase
 
   const cycleDays = Array.from({ length: 14 }, (_, i) => i + 1);
+  let cumOil = 0;
   const economicCurve = cycleDays.map((day) => {
     const bpd = Math.max(5, arpHyperbolicBPD(day, Q_INITIAL, D_INITIAL, B_EXPONENT));
+    cumOil += bpd;
     const sor = Number((STEAM_DAILY / bpd).toFixed(2));
+    const cum_sor = Number(((STEAM_DAILY * day) / cumOil).toFixed(2));
     const revenue = bpd * oilPrice;
     const cost = STEAM_DAILY * steamCost;
     const profit = Math.round(revenue - cost);
@@ -133,6 +142,7 @@ export default function Analytics() {
       day: `D${day}`,
       bpd: Math.round(bpd),
       sor,
+      cum_sor,
       profit,
       cutoff: economicCutoffSor,
       zero: 0,
@@ -205,15 +215,15 @@ export default function Analytics() {
           <div className="flex justify-between items-start">
             <div>
               <h2 className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">
-                Arps Hyperbolic Production Decline &amp; SOR Breakeven (b=1.0, Di=0.08/d)
+                Arps Hyperbolic Production Decline &amp; SOR Breakeven (b=1.0, Di=0.12/d)
               </h2>
               <span className="text-[8px] text-zinc-600 block">
                 CSS heavy oil analog • Cutoff triggers automatic re-injection recommendation
-                {sorCrossoverDay ? ` • Breakeven at ${sorCrossoverDay.day} (SOR = ${sorCrossoverDay.sor} t/bbl)` : ""}
+                {sorCrossoverDay ? ` • Breakeven at ${sorCrossoverDay.day} (Instant SOR = ${sorCrossoverDay.sor} t/bbl)` : ""}
               </span>
             </div>
             {/* Interactive What-If Panel */}
-            <div className="flex items-center gap-4 bg-black p-2 border border-zinc-800 text-xs shrink-0">
+            <div className="flex items-center gap-4 bg-black p-2 border border-zinc-850 text-xs shrink-0">
               <div className="flex items-center gap-2">
                 <span className="text-zinc-500 text-[9px] uppercase">Oil $/bbl</span>
                 <input type="number" value={oilPrice}
@@ -248,7 +258,11 @@ export default function Analytics() {
                     label={{ value: `Cutoff: ${economicCutoffSor}`, fill: "#ef4444", fontSize: 8, position: "insideTopRight" }} />
                   <ReferenceLine yAxisId="profit" y={0} stroke="#52525b" strokeWidth={1} />
                   <Bar yAxisId="profit" dataKey="profit" fill="#1c4532" stroke="#22c55e" strokeWidth={0.5} name="Daily Profit ($)" />
-                  <Line yAxisId="sor" type="monotone" dataKey="sor" stroke="#f59e0b" strokeWidth={2} dot={false} name="Rising SOR (t/bbl)" />
+                  <Line yAxisId="sor" type="monotone" dataKey="sor" stroke="#f59e0b" strokeWidth={2} dot={false} name="Instant SOR (t/bbl)" />
+                  <Line yAxisId="sor" type="monotone" dataKey="cum_sor" stroke="#06b6d4" strokeWidth={1.5} strokeDasharray="3 3" dot={false} name="Cumulative Cycle SOR (t/bbl)" />
+                  {sorCrossoverDay && (
+                    <ReferenceDot yAxisId="sor" x={sorCrossoverDay.day} y={sorCrossoverDay.sor} r={5} fill="#ef4444" stroke="#ffffff" strokeWidth={1.5} />
+                  )}
                 </ComposedChart>
               </ResponsiveContainer>
             </div>

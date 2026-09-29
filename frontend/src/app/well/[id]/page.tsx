@@ -30,6 +30,7 @@ interface EconomicMetrics {
   daily_oil_bpd: number;
   daily_steam_tons: number;
   current_sor: number;
+  cumulative_sor?: number;
   economic_cutoff_sor: number;
   net_daily_margin_usd: number;
   days_to_sor_cutoff: number;
@@ -236,24 +237,32 @@ export default function WellDeepDive({ params }: { params: { id: string } }) {
                 </div>
 
                 <div className="bg-zinc-950 p-2 border border-zinc-850">
-                  <span className="text-zinc-600 block text-[8px] uppercase">Current SOR</span>
+                  <span className="text-zinc-600 block text-[8px] uppercase">Days to Steaming</span>
+                  <span className="text-sm text-cyan-400 font-bold">
+                    {econ?.days_to_sor_cutoff !== undefined ? `${econ.days_to_sor_cutoff} d` : "---"}
+                  </span>
+                </div>
+
+                <div className="bg-zinc-950 p-2 border border-zinc-850">
+                  <span className="text-zinc-600 block text-[8px] uppercase">Cycle Cum. SOR</span>
+                  <span className="text-sm font-bold text-cyan-400">
+                    {econ?.cumulative_sor?.toFixed(2) ?? "---"}
+                    <span className="text-[9px] text-zinc-500 font-normal"> t/bbl</span>
+                  </span>
+                </div>
+
+                <div className="bg-zinc-950 p-2 border border-zinc-850">
+                  <span className="text-zinc-600 block text-[8px] uppercase">Instant SOR</span>
                   <span className="text-sm font-bold text-zinc-200">
                     {econ?.current_sor?.toFixed(2) ?? "---"}
                     <span className="text-[9px] text-zinc-500 font-normal"> t/bbl</span>
                   </span>
                 </div>
 
-                <div className="bg-zinc-950 p-2 border border-zinc-850">
-                  <span className="text-zinc-600 block text-[8px] uppercase">Breakeven Cutoff</span>
-                  <span className="text-xs text-amber-400">
+                <div className="bg-zinc-950 p-2 border border-zinc-850 col-span-2 flex justify-between items-center">
+                  <span className="text-zinc-600 text-[8px] uppercase">Breakeven Economic Cutoff</span>
+                  <span className="text-xs text-amber-400 font-bold">
                     {econ?.economic_cutoff_sor?.toFixed(2) ?? "3.16"} t/bbl
-                  </span>
-                </div>
-
-                <div className="bg-zinc-950 p-2 border border-zinc-850">
-                  <span className="text-zinc-600 block text-[8px] uppercase">Est. Days to Steaming</span>
-                  <span className="text-xs text-cyan-400 font-bold">
-                    {econ?.days_to_sor_cutoff !== undefined ? `${econ.days_to_sor_cutoff} days` : "---"}
                   </span>
                 </div>
               </div>

@@ -100,7 +100,7 @@ async def broadcast(payload: dict):
 @app.post("/api/telemetry", status_code=201)
 async def ingest_telemetry(data: TelemetryData):
     # Persist to SQLite (Fix #13)
-    database.save_telemetry(data.well_id, data.timestamp, data.sim_time, data.dict())
+    database.save_telemetry(data.well_id, data.timestamp, data.sim_time, data.model_dump())
     
     econ = data.economics
     sor_val = econ.current_sor if econ else 0.0
@@ -138,7 +138,7 @@ async def ingest_telemetry(data: TelemetryData):
                     timestamp=data.timestamp,
                     economic_loss_usd_day=round(loss_estimate, 1)
                 )
-                database.save_transition(alert.dict())
+                database.save_transition(alert.model_dump())
                 last_alert_rec[data.well_id] = rec_text
         else:
             last_alert_rec[data.well_id] = "Optimal Production"
@@ -146,11 +146,11 @@ async def ingest_telemetry(data: TelemetryData):
     # Broadcast to all WebSocket clients
     payload = {
         "type": "telemetry",
-        "data": data.dict(),
-        "fleet": {k: v.dict() for k, v in fleet_status.items()}
+        "data": data.model_dump(),
+        "fleet": {k: v.model_dump() for k, v in fleet_status.items()}
     }
     if alert:
-        payload["alert"] = alert.dict()
+        payload["alert"] = alert.model_dump()
 
     await broadcast(payload)
     return {"status": "success"}
@@ -159,7 +159,7 @@ async def ingest_telemetry(data: TelemetryData):
 @app.post("/api/surface", status_code=201)
 async def ingest_surface_metrics(metrics: SurfaceFacilityMetrics):
     global surface_facility_state
-    surface_facility_state = metrics.dict()
+    surface_facility_state = metrics.model_dump()
     await broadcast({
         "type": "surface",
         "data": surface_facility_state
@@ -195,9 +195,9 @@ async def update_setpoint(cmd: SetPointCommand, authorization: Optional[str] = H
     active_setpoints[cmd.well_id] = cmd
     await broadcast({
         "type": "setpoint_ack",
-        "data": cmd.dict()
+        "data": cmd.model_dump()
     })
-    return {"status": "accepted", "command": cmd.dict()}
+    return {"status": "accepted", "command": cmd.model_dump()}
 
 
 @app.get("/api/telemetry")
