@@ -227,7 +227,7 @@ async def get_transitions(well_id: str = None):
 async def get_status():
     return {
         "status": "online",
-        "system": "Baghewala Well-to-Surface Digital Twin (SIH 26120)",
+        "system": "Pravah // Baghewala Well-to-Surface Digital Twin (SIH 26120)",
         "disclaimer": "ILLUSTRATIVE - UNCALIBRATED",
         "active_wells": list(fleet_status.keys()),
         "surface_network_online": surface_facility_state is not None,

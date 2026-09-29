@@ -1,6 +1,6 @@
-# Digital Twin for Well-to-Surface Optimization (SIH-26120)
+# PRAVAH (प्रवाह) — Well-to-Surface Digital Twin (SIH-26120)
 
-### Cyclic Steam Stimulation (CSS) & Sucker Rod Pump (SRP) Operations — Baghewala Heavy Oil Field, Oil India Limited
+### Autonomous CSS & SRP Optimization for Baghewala Heavy Oil Field, Oil India Limited
 
 [![System Status](https://img.shields.io/badge/System-ONLINE-22c55e?style=flat-square&logo=radar)](http://localhost:3000)
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js%2014-000000?style=flat-square&logo=next.js)](https://nextjs.org/)

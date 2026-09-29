@@ -154,7 +154,7 @@ export default function WellDeepDive({ params }: { params: { id: string } }) {
         <div className="flex items-center gap-3">
           <span className={`w-2 h-2 rounded-none ${connected ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.8)]" : "bg-red-600 animate-pulse"}`} />
           <h1 className="text-xs tracking-widest font-bold text-zinc-100 uppercase">
-            SCADA WELL UNIT // {wellId}
+            PRAVAH SCADA // WELL UNIT {wellId}
           </h1>
           <span className="text-[9px] text-zinc-500 uppercase px-1.5 py-0.5 bg-zinc-900 border border-zinc-800">
             Jodhpur Formation • Cycle {telemetry?.cycle_number ?? 1}

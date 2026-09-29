@@ -92,7 +92,7 @@ export default function SurfaceFacilities() {
       <header className="h-10 border-b border-zinc-800 bg-black px-6 flex justify-between items-center shrink-0">
         <div className="flex items-center gap-3">
           <h1 className="text-[11px] tracking-widest font-bold text-zinc-100 uppercase">
-            SYS-TWIN // SURFACE FACILITIES &amp; GATHERING NETWORK TWIN
+            PRAVAH // SURFACE FACILITIES &amp; GATHERING NETWORK TWIN
           </h1>
           <span className="text-[8px] text-zinc-500 uppercase px-1.5 py-0.5 bg-zinc-900 border border-zinc-800">
             Baghewala Field Central Facilities

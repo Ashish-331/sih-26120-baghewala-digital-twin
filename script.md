@@ -1,7 +1,7 @@
-# 🛢️ The Baghewala Digital Twin — Explained So Simply Even a Baby Can Understand
+# 🛢️ PRAVAH (प्रवाह): The Baghewala Heavy Oil Digital Twin — Explained So Simply Even a Baby Can Understand
 
-> **What is this document?**  
-> This is a zero-jargon, story-driven explanation of our Smart India Hackathon (SIH 26120) project. Whether you are an oilfield executive, a college freshman, a hackathon judge, or a 10-year-old child, this guide explains what we built, why it matters, and how every piece of technology works.
+> **What is PRAVAH?**  
+> **PRAVAH (प्रवाह)** means *"unbroken, continuous flow"*. It is the official name of our Smart India Hackathon (SIH 26120) project. It represents transforming frozen, immobile desert heavy crude into a smooth, optimized stream of oil and cash flow. Whether you are an oilfield executive, a college freshman, a hackathon judge, or a 10-year-old child, this guide explains what we built, why it matters, and how every piece of technology works.
 
 ---
 

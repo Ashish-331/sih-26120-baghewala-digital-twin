@@ -14,6 +14,7 @@ def test_api_status():
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "online"
+    assert "Pravah" in data["system"]
     assert "Baghewala" in data["system"]
     assert "SQLite" in data.get("persistence", "")
 

@@ -15,8 +15,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Baghewala Digital Twin | SIH-26120",
-  description: "Real-time Digital Twin for Cyclic Steam Stimulation & Sucker Rod Pump Operations — Baghewala Heavy Oil Field, Oil India Ltd.",
+  title: "Pravah (प्रवाह) | Baghewala Heavy Oil Digital Twin (SIH-26120)",
+  description: "Pravah (प्रवाह): Real-time Well-to-Surface Digital Twin for Cyclic Steam Stimulation & Sucker Rod Pump Operations — Baghewala Field, Oil India Ltd.",
 };
 
 export default function RootLayout({

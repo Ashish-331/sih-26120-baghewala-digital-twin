@@ -1,4 +1,4 @@
-# SIH-26120 Baghewala Digital Twin — SCADA Frontend
+# PRAVAH (प्रवाह) — Industrial SCADA Frontend (SIH-26120)
 
 Next.js 14 Industrial Supervisory Control and Data Acquisition (SCADA) Human-Machine Interface.
 

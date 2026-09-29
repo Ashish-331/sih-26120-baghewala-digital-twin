@@ -5,7 +5,7 @@ export function Sidebar() {
     <aside className="w-16 lg:w-48 bg-black border-r border-zinc-800 flex flex-col h-screen font-mono sticky top-0 shrink-0 z-50">
       <div className="h-10 border-b border-zinc-800 flex items-center justify-center lg:justify-start lg:px-4">
         <div className="w-2.5 h-2.5 bg-green-500 rounded-none shadow-[0_0_6px_rgba(34,197,94,0.8)]"></div>
-        <span className="hidden lg:block ml-3 text-xs font-bold text-zinc-100 tracking-widest">SYS-TWIN</span>
+        <span className="hidden lg:block ml-3 text-xs font-bold text-zinc-100 tracking-widest">PRAVAH</span>
       </div>
       
       <nav className="flex-1 py-3 flex flex-col gap-1.5">
