@@ -4,8 +4,11 @@ from typing import List, Dict, Optional
 import uvicorn
 import json
 import os
+import sys
+import asyncio
 from datetime import datetime
 
+from contextlib import asynccontextmanager
 from models import (
     TelemetryData, 
     CycleTransition, 
@@ -15,10 +18,67 @@ from models import (
 )
 import database
 
+
+async def run_embedded_simulator_loop():
+    """
+    Embedded 1 Hz Physics Replay Engine:
+    Ensures that when deployed to cloud environments like Render, AWS, or Docker
+    with a single start command (uvicorn main:app), the digital twin automatically
+    generates coupled physics telemetry without requiring a separate background process.
+    """
+    await asyncio.sleep(1.0)
+    try:
+        import simulator
+        fleet = [
+            simulator.precompute_well("BGW-01", offset_hours=240, T_initial=255.0, T_reservoir=40.0, decline_tau=42.0, cycle_number=2, initial_bpd=135.0),
+            simulator.precompute_well("BGW-02", offset_hours=460, T_initial=240.0, T_reservoir=40.0, decline_tau=32.0, cycle_number=4, initial_bpd=95.0),
+            simulator.precompute_well("BGW-03", offset_hours=40,  T_initial=260.0, T_reservoir=40.0, decline_tau=50.0, cycle_number=1, initial_bpd=155.0),
+        ]
+        print("[PRAVAH TWIN] Embedded 1 Hz Physics Simulator active.")
+        step = 0
+        while True:
+            current_step_telemetry = []
+            for well_data in fleet:
+                payload = dict(well_data[step % 180])
+                payload["timestamp"] = datetime.now().isoformat()
+                current_step_telemetry.append(payload)
+                try:
+                    telemetry_obj = TelemetryData(**payload)
+                    await ingest_telemetry(telemetry_obj)
+                except Exception:
+                    pass
+
+            try:
+                surface_dict = simulator.compute_surface_facility_metrics(current_step_telemetry)
+                surface_obj = SurfaceFacilityMetrics(**surface_dict)
+                await ingest_surface_metrics(surface_obj)
+            except Exception:
+                pass
+
+            step += 1
+            await asyncio.sleep(1)
+    except Exception as e:
+        print(f"[PRAVAH TWIN] Embedded simulator error: {e}")
+
+
+@asynccontextmanager
+async def lifespan(app_instance: FastAPI):
+    is_testing = os.getenv("TESTING", "false").lower() == "true" or "pytest" in sys.modules
+    enable_embedded = os.getenv("ENABLE_EMBEDDED_SIMULATOR", "true").lower() == "true"
+    sim_task = None
+    if enable_embedded and not is_testing:
+        sim_task = asyncio.create_task(run_embedded_simulator_loop())
+        print("[STARTUP] Pravah Embedded 1 Hz Physics Simulator background task launched.")
+    yield
+    if sim_task:
+        sim_task.cancel()
+
+
 app = FastAPI(
     title="SIH-26120 Digital Twin API",
     description="Coupled Well-to-Surface Digital Twin for Baghewala Heavy Oil CSS & SRP Operations. *ILLUSTRATIVE - UNCALIBRATED*",
-    version="3.1.0"
+    version="3.1.0",
+    lifespan=lifespan
 )
 
 # Fix #14: Clean CORS configuration without wildcard + credentials collision
