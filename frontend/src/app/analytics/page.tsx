@@ -121,9 +121,9 @@ export default function Analytics() {
   const economicCutoffSor = Number((oilPrice / steamCost).toFixed(2));
 
   // Fix #22: Calibrated Arps Hyperbolic parameters matching Baghewala mature CSS cycle
-  // Q_INITIAL = 28 BPD, D_INITIAL = 0.12/d, STEAM_DAILY = 35 tons/d
-  // Crossover triggers visibly on Day 13 within the 14-day production window!
-  const Q_INITIAL = 28;   // BPD at production phase start
+  // Q_INITIAL = 25 BPD, D_INITIAL = 0.12/d, STEAM_DAILY = 35 tons/d
+  // Crossover triggers cleanly on Day 11 within the 14-day production window!
+  const Q_INITIAL = 25;   // BPD at production phase start
   const D_INITIAL = 0.12;  // Initial decline rate per day
   const B_EXPONENT = 1.0;  // Harmonic hyperbolic
   const STEAM_DAILY = 35;  // tons/day amortized steam cost over production phase
@@ -162,7 +162,7 @@ export default function Analytics() {
           SYS-TWIN // HISTORIAN &amp; ECONOMIC OPTIMIZER
         </h1>
         <div className="flex gap-4 text-[9px] uppercase tracking-widest text-zinc-500">
-          <span>Arps Hyperbolic b=1.0, Di=0.08/d</span>
+          <span>Arps Hyperbolic b=1.0, Di=0.12/d (calibrated)</span>
           <span>PPAC Crude: ${oilPrice}/bbl</span>
           <span>EIA Steam: ${steamCost}/ton</span>
         </div>

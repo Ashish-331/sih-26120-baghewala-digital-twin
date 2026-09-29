@@ -238,7 +238,7 @@ export default function FieldOverview() {
                       {well.viscosity ? `${Math.round(well.viscosity).toLocaleString()} cP` : "—"}
                     </td>
                     <td className="px-3.5 py-3 text-cyan-400 font-mono">
-                      {well.water_cut_pct ? `${well.water_cut_pct.toFixed(0)}%` : "35%"}
+                      {well.water_cut_pct != null ? `${well.water_cut_pct.toFixed(0)}%` : "—"}
                     </td>
                     <td className="px-3.5 py-3 text-zinc-300 font-mono">
                       {well.sor ? `${well.sor.toFixed(2)}` : (well.phase === "Production" ? "2.40" : "0.00")}

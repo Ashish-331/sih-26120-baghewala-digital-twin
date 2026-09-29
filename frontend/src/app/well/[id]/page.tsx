@@ -164,7 +164,7 @@ export default function WellDeepDive({ params }: { params: { id: string } }) {
           <span>Phase: <strong className="text-zinc-200">{telemetry?.phase ?? "AWAITING"}</strong></span>
           <span>BHT: <strong className="text-zinc-200">{telemetry?.temperature?.toFixed(1) ?? "—"}°C</strong></span>
           <span>Visc: <strong className="text-amber-400">{telemetry?.viscosity?.toFixed(0) ?? "—"} cP</strong></span>
-          <span>Water Cut: <strong className="text-cyan-400">{telemetry?.water_cut_pct?.toFixed(0) ?? "—"}%</strong></span>
+          <span>Water Cut: <strong className="text-cyan-400">{telemetry?.water_cut_pct != null ? `${telemetry.water_cut_pct.toFixed(0)}%` : "—"}</strong></span>
           <span>SPM: <strong className="text-green-400">{telemetry?.spm?.toFixed(1) ?? "—"}</strong></span>
         </div>
       </header>
