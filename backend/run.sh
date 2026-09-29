@@ -17,6 +17,9 @@ fi
 
 # Fix #17: Process management cleanly trap signals and use process group
 export PYTHONUNBUFFERED=1
+export PORT="${PORT:-8000}"
+export TWIN_API_URL="http://127.0.0.1:${PORT}/api/telemetry"
+export TWIN_SURFACE_API_URL="http://127.0.0.1:${PORT}/api/surface"
 
 # Start API server in background
 python main.py &

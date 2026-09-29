@@ -49,6 +49,25 @@ last_alert_rec: Dict[str, str] = {}
 VALID_AUTH_TOKEN = os.getenv("SETPOINT_AUTH_TOKEN", "sih-26120-sec-token-baghewala")
 
 
+@app.get("/")
+async def root():
+    return {
+        "system": "PRAVAH (प्रवाह) // Baghewala Well-to-Surface Digital Twin API",
+        "status": "online",
+        "message": "FastAPI backend is operational. For interactive Swagger API documentation, visit /docs. For live telemetry, connect to /ws/telemetry.",
+        "documentation": "/docs",
+        "health_check": "/api/status",
+        "endpoints": {
+            "status": "/api/status",
+            "fleet": "/api/fleet",
+            "history": "/api/history",
+            "surface": "/api/surface",
+            "websocket": "/ws/telemetry"
+        },
+        "active_wells": list(fleet_status.keys())
+    }
+
+
 @app.websocket("/ws/telemetry")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -238,4 +257,5 @@ async def get_status():
 
 if __name__ == "__main__":
     reload_flag = os.getenv("UVICORN_RELOAD", "false").lower() == "true"
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=reload_flag)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=reload_flag)
