@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useRef } from "react";
 import { BannerWatermark, Watermark } from "@/components/Watermark";
-import Link from "next/link";
-import { Flame, Activity, AlertTriangle, ShieldCheck, Gauge, Layers } from "lucide-react";
+import { Flame, AlertTriangle, ShieldCheck, Layers } from "lucide-react";
+
+import { API_URL, WS_URL } from "@/lib/config";
 
 interface SurfaceMetrics {
   boiler_steam_rate_tpd: number;
@@ -37,13 +38,13 @@ export default function SurfaceFacilities() {
 
   useEffect(() => {
     // Initial fetch from REST API
-    fetch("http://127.0.0.1:8000/api/surface")
+    fetch(`${API_URL}/api/surface`)
       .then((r) => r.json())
       .then((d) => { if (d) setSurface(d); })
       .catch(() => {});
 
     function connect() {
-      wsRef.current = new WebSocket("ws://127.0.0.1:8000/ws/telemetry");
+      wsRef.current = new WebSocket(WS_URL);
       wsRef.current.onopen = () => setConnected(true);
       wsRef.current.onclose = () => {
         setConnected(false);
@@ -57,7 +58,9 @@ export default function SurfaceFacilities() {
           } else if (payload.type === "init" && payload.surface) {
             setSurface(payload.surface);
           }
-        } catch (_) {}
+        } catch {
+          // ignore
+        }
       };
     }
     connect();
@@ -96,6 +99,7 @@ export default function SurfaceFacilities() {
           </span>
         </div>
         <div className="flex items-center gap-4 text-[9px] uppercase tracking-widest text-zinc-500">
+          <span className={`w-1.5 h-1.5 rounded-none ${connected ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.8)]" : "bg-red-600 animate-pulse"}`} />
           <span>OTSG-1 Boiler: <strong className="text-green-400">ONLINE (82.4% EFF)</strong></span>
           <span>GGS Separator: <strong className="text-cyan-400">ACTIVE</strong></span>
         </div>

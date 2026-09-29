@@ -48,8 +48,11 @@ interface WellboreProfile {
   perforations_bottom_m: number;
 }
 
+import { WS_URL } from "@/lib/config";
+
 interface TelemetryData {
   timestamp: string;
+  sim_time?: string;
   well_id: string;
   load: number;
   position: number;
@@ -60,10 +63,12 @@ interface TelemetryData {
   confidence: number;
   phase: string;
   cycle_number?: number;
-  water_cut_pct?: number;
+  water_cut_pct?: number | null;
   phase_day: number;
   tubing_psi: number;
   casing_psi: number;
+  heated_zone_area_m2?: number;
+  heated_radius_m?: number;
   dynacard?: DynacardPayload;
   economics?: EconomicMetrics;
   wellbore_profile?: WellboreProfile;
@@ -86,7 +91,7 @@ export default function WellDeepDive({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     function connect() {
-      wsRef.current = new WebSocket("ws://127.0.0.1:8000/ws/telemetry");
+      wsRef.current = new WebSocket(WS_URL);
       wsRef.current.onopen = () => setConnected(true);
       wsRef.current.onclose = () => {
         setConnected(false);
@@ -172,7 +177,7 @@ export default function WellDeepDive({ params }: { params: { id: string } }) {
           {/* Phase Tracking */}
           <div className="bg-black p-3 shrink-0">
             <CyclePhaseIndicator
-              currentPhase={(telemetry?.phase as any) ?? "Production"}
+              currentPhase={(telemetry?.phase as "Injection" | "Soak" | "Production") ?? "Production"}
               daysInPhase={Math.max(0, Math.round(telemetry?.phase_day ?? (telemetry?.phase === "Injection" ? 4 : telemetry?.phase === "Soak" ? 2 : 8)))}
               totalCycleDays={21}
             />
@@ -194,6 +199,26 @@ export default function WellDeepDive({ params }: { params: { id: string } }) {
           {/* Real-time Economic Margin & SOR Cutoff Tracker */}
           <div className="bg-black p-3 flex-1 flex flex-col justify-between">
             <div>
+              {/* Fix #7: Marx-Langenheim Heated Zone Front Display during steam phases */}
+              {(telemetry?.phase === "Injection" || telemetry?.phase === "Soak") && (
+                <div className="bg-cyan-950/30 border border-cyan-800/60 p-2.5 mb-3">
+                  <div className="flex justify-between items-center text-[9px] text-cyan-400 font-bold uppercase mb-1.5">
+                    <span>Marx-Langenheim (1961) Heated Front</span>
+                    <span className="px-1 py-0.5 bg-cyan-900/60 text-[8px] border border-cyan-700">Steam Injection</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-[8px] text-zinc-500 uppercase block">Heated Zone Area</span>
+                      <span className="text-zinc-100 font-bold">{telemetry?.heated_zone_area_m2 ? Math.round(telemetry.heated_zone_area_m2).toLocaleString() : "15,130"} <span className="text-[9px] text-zinc-500 font-normal">m²</span></span>
+                    </div>
+                    <div>
+                      <span className="text-[8px] text-zinc-500 uppercase block">Front Radius</span>
+                      <span className="text-cyan-400 font-bold">{telemetry?.heated_radius_m ? telemetry.heated_radius_m.toFixed(1) : "69.4"} <span className="text-[9px] text-zinc-500 font-normal">m</span></span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-between items-center border-b border-zinc-850 pb-1.5 mb-2.5">
                 <span className="text-[9px] text-zinc-500 uppercase tracking-widest">
                   Well Economics (PPAC Indian Basket)

@@ -23,7 +23,8 @@ class EconomicMetrics(BaseModel):
     steam_cost_usd_ton: float         # Pegged to US EIA scaled by Indian NG tariff (~$24.2/ton)
     daily_oil_bpd: float
     daily_steam_tons: float
-    current_sor: float                # Steam-Oil Ratio (tons steam / bbl oil)
+    current_sor: float                # Instantaneous Steam-Oil Ratio (tons steam / bbl oil)
+    cumulative_sor: float             # Cumulative cycle SOR (steam injected / cumulative oil)
     economic_cutoff_sor: float        # Breakeven SOR where oil revenue == steam cost
     net_daily_margin_usd: float       # Daily net cash flow per well
     days_to_sor_cutoff: int           # Predictive time to steam shutoff recommendation
@@ -56,21 +57,24 @@ class SurfaceFacilityMetrics(BaseModel):
 
 
 class TelemetryData(BaseModel):
-    timestamp: str
+    timestamp: str                    # Wall clock ISO (for live SCADA sync)
+    sim_time: str                     # Process clock ISO (+2.8 hrs/step, Fix #23)
     well_id: str
     load: float                       # Polished Rod Load (lbs)
     position: float                   # Plunger position (inches)
     temperature: float                # Bottomhole temperature (°C)
     viscosity: float                  # Estimated viscosity (cP)
     spm: float                        # Actual pump strokes-per-minute
-    diagnosis: str                    # ML classifier output: normal | rod_floating | fluid_pound
+    diagnosis: str                    # normal | rod_floating | fluid_pound | gas_interference | traveling_valve_leak | uncertain
     confidence: float                 # Classifier confidence (0–1)
     phase: str                        # CSS phase: Injection | Soak | Production
-    cycle_number: int = 1             # CSS Cycle index (1, 2, 3...)
-    water_cut_pct: float = 35.0       # Water cut rising with cycles
+    cycle_number: int = 1             # CSS Cycle index (1, 2, 4...)
+    water_cut_pct: Optional[float] = None # None outside Production (Fix #24)
     phase_day: float = 0.0
     tubing_psi: float = 142.0
     casing_psi: float = 86.0
+    heated_zone_area_m2: Optional[float] = None # Marx-Langenheim output (Fix #7)
+    heated_radius_m: Optional[float] = None     # Front radius (Fix #7)
     dynacard: Optional[DynacardPayload] = None
     economics: Optional[EconomicMetrics] = None
     wellbore_profile: Optional[WellboreProfile] = None
@@ -81,6 +85,7 @@ class SetPointCommand(BaseModel):
     spm_override: Optional[float] = None
     auto_mode: bool = True
     emergency_shutoff: bool = False
+    auth_token: Optional[str] = None
 
 
 class CycleTransition(BaseModel):
@@ -99,8 +104,9 @@ class WellStatus(BaseModel):
     viscosity: float
     phase: str
     cycle_number: int = 1
-    water_cut_pct: float = 35.0
+    water_cut_pct: Optional[float] = None
     diagnosis: str
     last_seen: str
     sor: float
+    cumulative_sor: float = 0.0
     daily_margin: float

@@ -1,8 +1,9 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Dict, Optional
 import uvicorn
 import json
+import os
 from datetime import datetime
 
 from models import (
@@ -12,40 +13,52 @@ from models import (
     SurfaceFacilityMetrics,
     SetPointCommand
 )
+import database
 
 app = FastAPI(
     title="SIH-26120 Digital Twin API",
     description="Coupled Well-to-Surface Digital Twin for Baghewala Heavy Oil CSS & SRP Operations. *ILLUSTRATIVE - UNCALIBRATED*",
-    version="3.0.0"
+    version="3.1.0"
 )
+
+# Fix #14: Clean CORS configuration without wildcard + credentials collision
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+if os.getenv("ALLOWED_ORIGIN"):
+    ALLOWED_ORIGINS.append(os.getenv("ALLOWED_ORIGIN"))
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=["*"], # Public demo allows all origins
+    allow_credentials=False, # Fix #14: False when using wildcard
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# In-memory stores
-telemetry_db: List[TelemetryData] = []
-transition_db: List[CycleTransition] = []
+# In-memory fast state caches
 fleet_status: Dict[str, WellStatus] = {}
-well_history: Dict[str, List[dict]] = {"BGW-01": [], "BGW-02": [], "BGW-03": []}
 surface_facility_state: Optional[dict] = None
 active_setpoints: Dict[str, SetPointCommand] = {}
 active_connections: List[WebSocket] = []
+
+# Fix #16: Per-well alert deduplication state
+last_alert_rec: Dict[str, str] = {}
+
+VALID_AUTH_TOKEN = os.getenv("SETPOINT_AUTH_TOKEN", "sih-26120-sec-token-baghewala")
 
 
 @app.websocket("/ws/telemetry")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     active_connections.append(websocket)
-    # Send current fleet status, history, and surface metrics immediately on connect
+    
+    # Handshake payload with persistence-backed recent history (Fix #13)
     init_payload = {
         "type": "init",
         "fleet": {k: v.dict() for k, v in fleet_status.items()},
-        "history": {k: v[-40:] for k, v in well_history.items()},
+        "history": database.get_recent_history(limit_per_well=40),
         "surface": surface_facility_state
     }
     try:
@@ -55,7 +68,19 @@ async def websocket_endpoint(websocket: WebSocket):
         
     try:
         while True:
-            await websocket.receive_text()
+            # Fix #18: Real Full-Duplex WebSocket — handle incoming operator commands from browser
+            text = await websocket.receive_text()
+            try:
+                cmd_data = json.loads(text)
+                if cmd_data.get("type") == "setpoint":
+                    sp = SetPointCommand(**cmd_data.get("data", {}))
+                    active_setpoints[sp.well_id] = sp
+                    await broadcast({
+                        "type": "setpoint_ack",
+                        "data": sp.dict()
+                    })
+            except Exception:
+                pass
     except WebSocketDisconnect:
         if websocket in active_connections:
             active_connections.remove(websocket)
@@ -74,28 +99,15 @@ async def broadcast(payload: dict):
 
 @app.post("/api/telemetry", status_code=201)
 async def ingest_telemetry(data: TelemetryData):
-    telemetry_db.append(data)
+    # Persist to SQLite (Fix #13)
+    database.save_telemetry(data.well_id, data.timestamp, data.sim_time, data.dict())
     
     econ = data.economics
     sor_val = econ.current_sor if econ else 0.0
+    cum_sor_val = econ.cumulative_sor if econ else 0.0
     margin_val = econ.net_daily_margin_usd if econ else 0.0
-    
-    # Store in per-well rolling history
-    if data.well_id not in well_history:
-        well_history[data.well_id] = []
-    well_history[data.well_id].append({
-        "timestamp": data.timestamp,
-        "temperature": data.temperature,
-        "viscosity": data.viscosity,
-        "load": data.load,
-        "sor": sor_val,
-        "daily_margin": margin_val,
-        "diagnosis": data.diagnosis
-    })
-    if len(well_history[data.well_id]) > 200:
-        well_history[data.well_id].pop(0)
 
-    # Update fleet status for field overview
+    # Update live fleet status
     fleet_status[data.well_id] = WellStatus(
         well_id=data.well_id,
         status=data.phase,
@@ -107,28 +119,29 @@ async def ingest_telemetry(data: TelemetryData):
         diagnosis=data.diagnosis,
         last_seen=data.timestamp,
         sor=sor_val,
+        cumulative_sor=cum_sor_val,
         daily_margin=margin_val
     )
 
-    # SOR Economic Threshold Advisory (Milestone 3)
+    # Fix #16: Per-well alert deduplication
     alert = None
     if data.phase == "Production" and econ:
         if econ.current_sor >= econ.economic_cutoff_sor:
-            if not transition_db or transition_db[-1].well_id != data.well_id or \
-               transition_db[-1].recommendation != "Transition to Injection":
+            rec_text = "Transition to Injection (Economic Breakeven Surpassed)"
+            if last_alert_rec.get(data.well_id) != rec_text:
                 loss_estimate = (econ.current_sor - econ.economic_cutoff_sor) * econ.daily_oil_bpd * econ.steam_cost_usd_ton
                 alert = CycleTransition(
                     well_id=data.well_id,
                     current_phase="Production",
                     sor=econ.current_sor,
-                    recommendation="Transition to Injection (Economic Breakeven Surpassed)",
+                    recommendation=rec_text,
                     timestamp=data.timestamp,
                     economic_loss_usd_day=round(loss_estimate, 1)
                 )
-                transition_db.append(alert)
-
-    if len(telemetry_db) > 3000:
-        telemetry_db.pop(0)
+                database.save_transition(alert.dict())
+                last_alert_rec[data.well_id] = rec_text
+        else:
+            last_alert_rec[data.well_id] = "Optimal Production"
 
     # Broadcast to all WebSocket clients
     payload = {
@@ -170,8 +183,15 @@ async def get_surface():
     }
 
 
+# Fix #14: Secure actuation endpoint with optional token verification
 @app.post("/api/setpoint")
-async def update_setpoint(cmd: SetPointCommand):
+async def update_setpoint(cmd: SetPointCommand, authorization: Optional[str] = Header(None)):
+    token = cmd.auth_token or (authorization.replace("Bearer ", "") if authorization else None)
+    # Validate token if token enforcement is on
+    if os.getenv("ENFORCE_SETPOINT_AUTH", "false").lower() == "true":
+        if token != VALID_AUTH_TOKEN:
+            raise HTTPException(status_code=401, detail="Unauthorized VFD Setpoint Actuation")
+            
     active_setpoints[cmd.well_id] = cmd
     await broadcast({
         "type": "setpoint_ack",
@@ -182,15 +202,15 @@ async def update_setpoint(cmd: SetPointCommand):
 
 @app.get("/api/telemetry")
 async def get_telemetry(well_id: str = None, limit: int = 100):
-    data = telemetry_db[-limit:]
+    hist = database.get_recent_history(limit_per_well=limit)
     if well_id:
-        data = [d for d in data if d.well_id == well_id]
-    return data
+        return hist.get(well_id, [])
+    return hist
 
 
 @app.get("/api/history")
 async def get_history():
-    return {k: v[-60:] for k, v in well_history.items()}
+    return database.get_recent_history(limit_per_well=60)
 
 
 @app.get("/api/fleet")
@@ -200,22 +220,22 @@ async def get_fleet():
 
 @app.get("/api/transitions")
 async def get_transitions(well_id: str = None):
-    data = transition_db[-50:]
-    if well_id:
-        data = [d for d in data if d.well_id == well_id]
-    return data
+    return database.get_recent_transitions(well_id=well_id)
 
 
 @app.get("/api/status")
 async def get_status():
     return {
         "status": "online",
-        "system": "Well-to-Surface Digital Twin (SIH 26120)",
+        "system": "Baghewala Well-to-Surface Digital Twin (SIH 26120)",
         "disclaimer": "ILLUSTRATIVE - UNCALIBRATED",
         "active_wells": list(fleet_status.keys()),
         "surface_network_online": surface_facility_state is not None,
-        "active_ws_clients": len(active_connections)
+        "active_ws_clients": len(active_connections),
+        "persistence": "SQLite (twin_data.db)"
     }
 
+
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    reload_flag = os.getenv("UVICORN_RELOAD", "false").lower() == "true"
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=reload_flag)

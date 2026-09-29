@@ -81,10 +81,12 @@ $$\mu(T) = 1.842 \times 10^{-4} \cdot \exp\left(\frac{5704}{T_K}\right)$$
 - **100°C (Mid-production):** **~810 cP**.
 - **250°C (Steam saturation):** **~10 cP** (flowing mobile liquid).
 
-### 4. 1D Damped Gibbs Wave Equation (Surface $\to$ Downhole Pump Card)
-Reconstructs the downhole pump card from surface polished rod loads, taking into account elastic rod elongation and acoustic damping:
-$$\frac{\partial^2 u}{\partial t^2} = a^2 \frac{\partial^2 u}{\partial x^2} - c \frac{\partial u}{\partial t}$$
-Downhole stroke calculates rod stretch $S = \frac{F_{\text{fluid}}}{K_{\text{rod}}}$ with $K_{\text{rod}} = 30,000\text{ lb/in}$, isolating traveling valve vs standing valve load transfer.
+### 4. Kinematic Pump-Card Transformation (Gibbs-Lite Formulation)
+Reconstructs the downhole pump card from surface polished rod loads, taking into account elastic rod elongation and traveling/standing valve load transfer:
+$$S_{\text{stretch}} = \frac{F_{\text{fluid}}}{K_{\text{rod}}} \quad \text{where } K_{\text{rod}} \approx 30,000\text{ lb/in (API Grade D steel rod string)}$$
+- **Upstroke:** Rod string stretches under fluid lift, causing downhole plunger displacement to lag surface movement.
+- **Downstroke:** Rod string unloads as fluid transfers to the standing valve, recovering stretch and shifting position.
+- **Roadmap:** Full finite-difference boundary-value integration of the hyperbolic damped wave equation $\frac{\partial^2 u}{\partial t^2} = a^2 \frac{\partial^2 u}{\partial x^2} - c \frac{\partial u}{\partial t}$ is mapped for field-scale deployment.
 
 ### 5. Arps Hyperbolic Decline & Economic SOR Cutoff
 Models heavy oil thermal recovery ($b = 1.0$ harmonic decline standard for thermal CSS):
@@ -99,9 +101,9 @@ When real-time SOR crosses $\text{SOR}_{\text{cutoff}}$, the digital twin automa
 | Tier | Technologies |
 |---|---|
 | **Frontend** | Next.js 14 (App Router), React, TypeScript, Tailwind CSS, Lucide Icons, Recharts, Custom High-Performance SVG Canvas |
-| **Backend** | Python 3.12, FastAPI, WebSockets, Uvicorn, Pydantic v2 |
-| **ML & Physics** | Scikit-Learn (Random Forest), NumPy 2.x, SciPy (`erfc`), Joblib |
-| **Telemetry Protocol** | 60 Hz Full-Duplex WebSockets (`ws://127.0.0.1:8000/ws/telemetry`) |
+| **Backend** | Python 3.12, FastAPI, WebSockets, Uvicorn, Pydantic v2, SQLite Persistence (`twin_data.db`) |
+| **ML & Physics** | Scikit-Learn (Random Forest 5-Class), NumPy 2.x, SciPy (`erfc`), Joblib |
+| **Telemetry Protocol** | Time-Compressed Replay Engine (1 Hz WebSocket stream, 21d CSS simulated into 3m, bidirectional setpoint dispatch) |
 
 ---
 
@@ -113,13 +115,16 @@ When real-time SOR crosses $\text{SOR}_{\text{cutoff}}$, the digital twin automa
 
 ### 1. Clone & Set Up Backend
 ```bash
-git clone https://github.com/Ashish-331/sih-baghewala-digital-twin.git
-cd sih-baghewala-digital-twin/backend
+git clone https://github.com/Ashish-331/sih-26120-baghewala-digital-twin.git
+cd sih-26120-baghewala-digital-twin/backend
 
 # Set up virtual environment
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt # or install fastapi uvicorn pydantic scikit-learn numpy scipy requests joblib
+pip install -r requirements.txt
+
+# Run automated physics & API unit tests
+pytest tests/ -v
 
 # Run backend API + simulation replay engine
 chmod +x run.sh
@@ -134,6 +139,11 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### 3. Docker Compose (Alternative One-Click Start)
+```bash
+docker compose up --build
+```
 
 ---
 

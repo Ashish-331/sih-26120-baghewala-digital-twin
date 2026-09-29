@@ -74,7 +74,7 @@ export function WellboreSchematic({
       {/* Header with selector */}
       <div className="flex justify-between items-center mb-2 px-1 shrink-0">
         <span className="text-[10px] text-zinc-500 uppercase tracking-widest">
-          Subsurface Wellbore Profile
+          Subsurface Wellbore Profile ({phase})
         </span>
         <div className="flex items-center gap-1 border border-zinc-800 p-0.5 bg-zinc-950">
           <button

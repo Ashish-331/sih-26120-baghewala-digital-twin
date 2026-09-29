@@ -5,6 +5,8 @@ import { BannerWatermark, Watermark } from "@/components/Watermark";
 import Link from "next/link";
 import { Flame, Layers, GitCommit, ArrowRight } from "lucide-react";
 
+import { API_URL, WS_URL } from "@/lib/config";
+
 interface WellStatus {
   well_id: string;
   status: string;
@@ -12,10 +14,11 @@ interface WellStatus {
   viscosity?: number;
   phase: string;
   cycle_number?: number;
-  water_cut_pct?: number;
+  water_cut_pct?: number | null;
   diagnosis: string;
   last_seen: string;
   sor?: number;
+  cumulative_sor?: number;
   daily_margin?: number;
 }
 
@@ -23,6 +26,9 @@ const DIAGNOSIS_SEVERITY: Record<string, { label: string; style: string }> = {
   normal: { label: "NORMAL", style: "text-green-400 border-green-800 bg-green-950/20" },
   rod_floating: { label: "ROD FLOATING", style: "text-amber-400 border-amber-800 bg-amber-950/20" },
   fluid_pound: { label: "FLUID POUND", style: "text-red-400 border-red-800 bg-red-950/20" },
+  gas_interference: { label: "GAS INTERFERENCE", style: "text-purple-400 border-purple-800 bg-purple-950/20" },
+  traveling_valve_leak: { label: "VALVE LEAK", style: "text-pink-400 border-pink-800 bg-pink-950/20" },
+  uncertain: { label: "UNCERTAIN (CONF < 70%)", style: "text-zinc-400 border-zinc-700 bg-zinc-900/40" },
 };
 
 const PHASE_COLOR: Record<string, string> = {
@@ -33,15 +39,15 @@ const PHASE_COLOR: Record<string, string> = {
 
 export default function FieldOverview() {
   const [fleet, setFleet] = useState<Record<string, WellStatus>>({
-    "BGW-01": { well_id: "BGW-01", status: "Production", temperature: 185.0, viscosity: 320.0, phase: "Production", cycle_number: 2, water_cut_pct: 42.0, diagnosis: "normal", last_seen: "", sor: 1.2, daily_margin: 4800 },
-    "BGW-02": { well_id: "BGW-02", status: "Production", temperature: 72.0, viscosity: 3100.0, phase: "Production", cycle_number: 4, water_cut_pct: 78.0, diagnosis: "rod_floating", last_seen: "", sor: 3.8, daily_margin: -450 },
-    "BGW-03": { well_id: "BGW-03", status: "Injection", temperature: 260.0, viscosity: 9.0, phase: "Injection", cycle_number: 1, water_cut_pct: 25.0, diagnosis: "normal", last_seen: "", sor: 0.0, daily_margin: -850 },
+    "BGW-01": { well_id: "BGW-01", status: "Production", temperature: 185.0, viscosity: 320.0, phase: "Production", cycle_number: 2, water_cut_pct: 42.0, diagnosis: "normal", last_seen: "", sor: 1.8, daily_margin: 2450 },
+    "BGW-02": { well_id: "BGW-02", status: "Production", temperature: 72.0, viscosity: 2800.0, phase: "Production", cycle_number: 4, water_cut_pct: 78.0, diagnosis: "rod_floating", last_seen: "", sor: 4.2, daily_margin: -320 },
+    "BGW-03": { well_id: "BGW-03", status: "Injection", temperature: 260.0, viscosity: 9.0, phase: "Injection", cycle_number: 1, water_cut_pct: null, diagnosis: "normal", last_seen: "", sor: 0.0, daily_margin: -850 },
   });
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/fleet")
+    fetch(`${API_URL}/api/fleet`)
       .then((res) => res.json())
       .then((data) => {
         if (data && Object.keys(data).length > 0) setFleet(data);
@@ -49,7 +55,7 @@ export default function FieldOverview() {
       .catch(() => {});
 
     function connect() {
-      wsRef.current = new WebSocket("ws://127.0.0.1:8000/ws/telemetry");
+      wsRef.current = new WebSocket(WS_URL);
       wsRef.current.onopen = () => setConnected(true);
       wsRef.current.onclose = () => {
         setConnected(false);
@@ -62,7 +68,9 @@ export default function FieldOverview() {
           if (payload.fleet) {
             setFleet(payload.fleet);
           }
-        } catch (e) {}
+        } catch {
+          // ignore
+        }
       };
     }
     connect();

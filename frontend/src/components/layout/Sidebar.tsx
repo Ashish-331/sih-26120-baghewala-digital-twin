@@ -29,8 +29,11 @@ export function Sidebar() {
       
       <div className="p-3 border-t border-zinc-800">
         <div className="flex justify-between text-[8px] text-zinc-600 uppercase mb-1">
-          <span>Telemetry</span>
-          <span className="text-green-500">60 Hz</span>
+          <span>Replay Engine</span>
+          <span className="text-green-500 font-bold">1 Hz Replay</span>
+        </div>
+        <div className="text-[7px] text-zinc-600 uppercase mb-1">
+          21 Days CSS → 3 Min Demo
         </div>
         <div className="w-full bg-zinc-900 h-1"><div className="w-[92%] bg-green-500 h-full"></div></div>
       </div>

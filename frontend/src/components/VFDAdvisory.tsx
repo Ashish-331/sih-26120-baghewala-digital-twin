@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AlertTriangle, Settings2, Activity, ShieldCheck, Send, Sliders } from 'lucide-react';
+import { API_URL, VFD_SETPOINT_TOKEN } from "@/lib/config";
 
 interface Props {
   wellId?: string;
@@ -22,22 +23,42 @@ export function VFDAdvisory({
   const isOptimal = Math.abs(diff) <= 0.3;
   const isHighViscosity = viscosityEstimate > 1800;
 
-  // What-If stress projection based on targetSPM & viscosity
+  // Fix #6: Authentic Stokes Fall Velocity Formulation
+  // d_rod = 1.0 inch = 0.0254 m; rho_steel = 7850 kg/m3; rho_oil = 980 kg/m3; g = 9.81 m/s2
+  const g = 9.81;
+  const d_rod = 0.0254; // 1" API steel rod
+  const delta_rho = 7850.0 - 980.0; // 6870 kg/m3 net buoyant density
+  const mu_pa_s = Math.max(0.01, (viscosityEstimate * 0.001)); // cP to Pa.s
+  
+  // v_fall = (g * d^2 * delta_rho) / (18 * mu) [m/s]
+  const v_fall_m_s = (g * (d_rod ** 2) * delta_rho) / (18.0 * mu_pa_s);
+  const v_fall_ft_s = v_fall_m_s * 3.28084;
+  
+  // Downstroke duration at SPM is t_down = 60 / (2 * SPM) = 30 / SPM seconds.
+  // Rod must fall stroke length (100 inches = 2.54 m) within t_down:
+  // 30 / SPM >= stroke_m / v_fall => SPM_stokes_cap = (v_fall / 2.54) * 30
+  const spmStokesCap = Math.max(2.0, Math.min(9.0, (v_fall_m_s / 2.54) * 30.0));
+  
+  // Mechanical rod stress calculation based on API RP 11L
   const projectedRodStress = Math.round(14000 + (targetSPM * 1100) + (viscosityEstimate * 1.8));
   const rodStressLimit = 30000; // API Grade D rod yield stress limit (psi)
-  const isStressWarning = projectedRodStress > rodStressLimit * 0.85;
+  const isStressWarning = projectedRodStress > rodStressLimit * 0.85 || targetSPM > spmStokesCap;
 
   const handleDispatch = async () => {
     setDispatchStatus("DISPATCHING...");
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/setpoint", {
+      const res = await fetch(`${API_URL}/api/setpoint`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${VFD_SETPOINT_TOKEN}`
+        },
         body: JSON.stringify({
           well_id: wellId,
           spm_override: targetSPM,
           auto_mode: autoMode,
           emergency_shutoff: false,
+          auth_token: VFD_SETPOINT_TOKEN,
         }),
       });
       if (res.ok) {
@@ -46,7 +67,7 @@ export function VFDAdvisory({
       } else {
         setDispatchStatus("DISPATCH_ERR");
       }
-    } catch (_) {
+    } catch {
       setDispatchStatus("OFFLINE_EMULATED");
       setTimeout(() => setDispatchStatus(null), 3000);
     }
@@ -122,9 +143,16 @@ export function VFDAdvisory({
           />
 
           <div className="flex justify-between text-[8px] text-zinc-500">
-            <span>Projected Rod Peak Stress:</span>
+            <span>Projected Rod Stress:</span>
             <span className={`font-bold ${isStressWarning ? "text-red-400" : "text-green-400"}`}>
               {projectedRodStress.toLocaleString()} psi ({Math.round((projectedRodStress / rodStressLimit) * 100)}% API Yield)
+            </span>
+          </div>
+
+          <div className="flex justify-between text-[8px] text-zinc-500">
+            <span>Stokes Downstroke Cap:</span>
+            <span className={`font-bold ${targetSPM > spmStokesCap ? "text-amber-400" : "text-zinc-300"}`}>
+              {spmStokesCap.toFixed(1)} SPM (v_fall: {v_fall_ft_s.toFixed(2)} ft/s)
             </span>
           </div>
 
@@ -138,7 +166,7 @@ export function VFDAdvisory({
         </div>
       )}
 
-      {/* Viscosity & Kinetic Fall Status */}
+      {/* Viscosity & Kinetic Stokes Fall Status */}
       <div className="bg-black p-2 border border-zinc-900 flex flex-col gap-1">
         <div className="flex justify-between items-center text-xs">
           <span className="text-zinc-500 text-[9px] uppercase tracking-wider flex items-center gap-1.5">
@@ -155,14 +183,14 @@ export function VFDAdvisory({
             <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             <p className="leading-snug">
               {diff < 0
-                ? `High viscous drag detected. Reduce SPM to ${recommendedSPM.toFixed(1)} to prevent downstroke rod floating & buckling.`
-                : `Viscosity low. Safe to increase SPM to ${recommendedSPM.toFixed(1)} for maximized volumetric lift rate.`}
+                ? `High viscous drag detected. Stokes terminal fall velocity drops to ${v_fall_ft_s.toFixed(2)} ft/s. Reduce SPM to ${recommendedSPM.toFixed(1)} to prevent downstroke rod floating & buckling.`
+                : `Viscosity low (${viscosityEstimate} cP). Safe to increase SPM to ${recommendedSPM.toFixed(1)} within Stokes kinematic envelope.`}
             </p>
           </div>
         ) : (
           <div className="mt-1 pt-1.5 border-t border-zinc-850 flex items-center gap-1.5 text-green-400 text-[10px]">
             <ShieldCheck className="w-3 h-3 shrink-0" />
-            <span>Operating within optimal Stokes kinematic fall envelope.</span>
+            <span>Stokes terminal fall velocity: {v_fall_ft_s.toFixed(2)} ft/s. Operating within laminar gravity settling envelope.</span>
           </div>
         )}
       </div>

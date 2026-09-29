@@ -24,6 +24,9 @@ const DIAGNOSIS_COLOR: Record<string, { stroke: string; fill: string; border: st
   normal: { stroke: "#22c55e", fill: "rgba(34, 197, 94, 0.12)", border: "border-green-600" },
   rod_floating: { stroke: "#f59e0b", fill: "rgba(245, 158, 11, 0.12)", border: "border-amber-600" },
   fluid_pound: { stroke: "#ef4444", fill: "rgba(239, 68, 68, 0.12)", border: "border-red-600" },
+  gas_interference: { stroke: "#a855f7", fill: "rgba(168, 85, 247, 0.12)", border: "border-purple-600" },
+  traveling_valve_leak: { stroke: "#ec4899", fill: "rgba(236, 72, 153, 0.12)", border: "border-pink-600" },
+  uncertain: { stroke: "#71717a", fill: "rgba(113, 113, 122, 0.12)", border: "border-zinc-600" },
 };
 
 export function DynacardChart({
@@ -90,9 +93,9 @@ export function DynacardChart({
       <div className="flex justify-between items-center mb-2 px-1 shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-zinc-500 uppercase tracking-widest">
-            Gibbs 1D Dynacard Analysis
+            Kinematic Card Transform (Hooke + Valve Transfer / Gibbs-Lite)
           </span>
-          <span className="text-[9px] text-zinc-600">• SCADA SAM-RPC 60Hz</span>
+          <span className="text-[9px] text-zinc-600">• SCADA Replay 1Hz (21d in 3min)</span>
         </div>
         <div className="flex items-center gap-3">
           <button

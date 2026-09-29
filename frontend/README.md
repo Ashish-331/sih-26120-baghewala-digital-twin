@@ -1,36 +1,26 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SIH-26120 Baghewala Digital Twin — SCADA Frontend
 
-## Getting Started
+Next.js 14 Industrial Supervisory Control and Data Acquisition (SCADA) Human-Machine Interface.
 
-First, run the development server:
+## Routes & Screens
+
+- `/` — **Fleet Supervisory Overview:** Multi-cycle asset roster (Cycles 1, 2, 4) & Well-to-Surface pipeline topology.
+- `/surface` — **Surface Facilities Twin:** Central OTSG-01 Steam Boiler telemetry & Thar Desert ambient temperature slider for bitumen gel hazard alerts.
+- `/well/[id]` — **SCADA Wellbore Deep Dive:** Dual-trace Kinematic Dynacard (Hooke/Gibbs-Lite) vs Subsurface Wellbore Gradient $T(z)$, with closed-loop VFD setpoint control.
+- `/analytics` — **AI Historian & SOR Optimizer:** Multi-well BHT decline curves & interactive Arps Hyperbolic economic breakeven calculator.
+
+## Environment Variables
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL` | `http://127.0.0.1:8000` | FastAPI backend REST endpoint base URL |
+| `NEXT_PUBLIC_WS_URL` | `ws://127.0.0.1:8000/ws/telemetry` | Full-duplex WebSocket telemetry stream URL |
+| `NEXT_PUBLIC_SETPOINT_TOKEN` | `sih-26120-sec-token-baghewala` | Security bearer token for VFD setpoint actuation |
+
+## Quick Start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Open [http://localhost:3000](http://localhost:3000).
