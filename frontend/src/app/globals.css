@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    background-color: #000000;
+  }
+
+  body {
+    @apply bg-black text-zinc-300 font-mono;
+    /* Prevent white flash on load */
+    background-color: #000000;
+  }
+
+  /* Prevent Recharts or other libraries from injecting white backgrounds */
+  * {
+    box-sizing: border-box;
+  }
+
+  /* SCADA-style scrollbars */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #09090b;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #3f3f46;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #52525b;
+  }
+}
